@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+</head>
+
+<body>
+    <div>
+        <label for="username">Username:</label>
+        <input type="text" id="username">
+        <button onclick="login()">Login</button>
+    </div>
+
+    <div id="chatSection" style="display: none;">
+        <label for="channel">Channel:</label>
+        <input type="text" id="channel" value="main" readonly>
+        <button onclick="joinChannel()">Join Channel</button>
+        <button onclick="leaveChannel()">Leave Channel</button>
+
+        <div>
+            <textarea id="messageInput" placeholder="Type your message"></textarea>
+            <button onclick="sendMessage()">Send</button>
+        </div>
+
+        <div id="messages"></div>
+    </div>
+
+    <script type="text/javascript" src="agora-rtm-sdk-1.5.1.js"></script>
+    <script type="text/javascript">
+        const appId = "6770b5bf67624356a19808ec74b2dd92";
+        const userId = String(Math.floor(Math.random() * 1000));
+        let token = null;
+        let client = null;
+        let channel = null;
+
+        async function login() {
+            const username = document.getElementById("username").value;
+            if (!username) {
+                alert("Please enter a username.");
+                return;
+            }
+
+            try {
+                client = await AgoraRTM.createInstance(appId);
+                await client.login({ uid: userId, token });
+                console.log("Logged in successfully as", username);
+
+                document.getElementById("chatSection").style.display = "block";
+            } catch (error) {
+                console.error("Login error:", error);
+            }
+        }
+
+        async function joinChannel() {
+            const channelName = document.getElementById("channel").value;
+            channel = await client.createChannel(channelName);
+            await channel.join();
+
+            channel.on('ChannelMessage', (message, peerId) => {
+                displayMessage(`[${peerId}] ${message.text}`);
+            });
+
+            console.log(`Joined channel: ${channelName}`);
+        }
+
+        async function leaveChannel() {
+            if (channel) {
+                await channel.leave();
+                console.log("Left the channel");
+            }
+        }
+
+        async function sendMessage() {
+            const messageInput = document.getElementById("messageInput");
+            const message = messageInput.value;
+
+            if (!message) {
+                alert("Please enter a message.");
+                return;
+            }
+
+            if (channel) {
+                await channel.sendMessage({ text: message, type: 'text' });
+                messageInput.value = "";
+            }
+        }
+
+        function displayMessage(message) {
+            const messagesDiv = document.getElementById("messages");
+            const messageElement = document.createElement("div");
+            messageElement.textContent = message;
+            messagesDiv.appendChild(messageElement);
+        }
+    </script>
+</body>
+
+</html>
